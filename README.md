@@ -1,1 +1,1 @@
-# STOPPED_EC2_RECORDER
+In this project, I created a python code to create a list of stopped Ec2 intances in the "us-east-1" region on AWS, generate a csv file containing that list and upload it to s prexisting S3 bucket. I also created an alarm and an SNS topic which allowed me to to track the "number of objects" in the bucket. Finally, I sent an email to the user and a specific message to the user given phone number.
