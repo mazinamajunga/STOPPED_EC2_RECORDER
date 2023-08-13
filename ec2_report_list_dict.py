@@ -85,7 +85,47 @@ def list_all_instances(region_name=AWS_REGION):
         logger.exception(f"Error retrieving instances in REGION {region_name}: {e}")
        
     return instances
-    
+
+def format_tags(tags_dict):
+    formatted_tags = []
+    for key, value in tags_dict.items():
+        formatted_tags.append(f"{key}: {value!r}")  # !r adds quotes around the value
+    return ", ".join(formatted_tags)
+
+def format_instance_data(instance_data):
+    tags_str = format_tags(instance_data['tags'])
+    formatted_str = (
+        f"Image ID: {instance_data['image_id']}\n"
+        f"Instance ID: {instance_data['instance_id']}\n"
+        f"Instance Type: {instance_data['instance_type']}\n"
+        f"Private DNS Name: {instance_data['private_dns_name']}\n"
+        f"Private IP Address: {instance_data['private_ip_address']}\n"
+        f"Public DNS Name: {instance_data['public_dns_name']}\n"
+        f"Public IP Address: {instance_data['public_ip_address']}\n"
+        f"Subnet ID: {instance_data['subnet_id']}\n"
+        f"VPC ID: {instance_data['vpc_id']}\n"
+        f"Placement: {instance_data['placement']}\n"
+        f"Tags: {tags_str}\n"
+    )
+    return formatted_str
+
+# def format_instance_data(instance_data):
+#     tags_str = ", ".join([f"{key}: {value}" for key, value in instance_data['tags'].items()])  
+#     formatted_str = (
+#         f"Image ID: {instance_data['image_id']}\n"
+#         f"Instance ID: {instance_data['instance_id']}\n"
+#         f"Instance Type: {instance_data['instance_type']}\n"
+#         f"Private DNS Name: {instance_data['private_dns_name']}\n"
+#         f"Private IP Address: {instance_data['private_ip_address']}\n"
+#         f"Public DNS Name: {instance_data['public_dns_name']}\n"
+#         f"Public IP Address: {instance_data['public_ip_address']}\n"
+#         f"Subnet ID: {instance_data['subnet_id']}\n"
+#         f"VPC ID: {instance_data['vpc_id']}\n"
+#         f"Placement: {instance_data['placement']}\n"
+#         f"Tags: {tags_str}\n"
+#     )
+#     return formatted_str
+
 def generate_csv_report(data_retrieved): 
     """Generates a CSV report from the given data.
 
@@ -99,6 +139,8 @@ def generate_csv_report(data_retrieved):
     Raises:
         TypeError: If data_retrieved is not a list of dictionaries.
     """    
+    
+    # Data validation
     # checking whether the data_retrieved argument is a list of dictionaries.
     # first check if data_retrieved is a list 'isinstance(data_retrieved, list)'
     # then check if element of the data_retrieved is a dictionary isinstance(d, dict) for d in data_retrieved
@@ -126,7 +168,7 @@ def generate_csv_report(data_retrieved):
         return False
     return True
 
-def upload_file_to_S3(report = REPORT_NAME, bucket = BUCKET_NAME, object = OBJECT_NAME):
+def upload_file_to_s3(report = REPORT_NAME, bucket = BUCKET_NAME, object = OBJECT_NAME):
     """
     Upload a file to the specified S3 bucket with the given object name.
 
@@ -142,7 +184,7 @@ def upload_file_to_S3(report = REPORT_NAME, bucket = BUCKET_NAME, object = OBJEC
     # Upload the file to S3 bucket
     client_s3 = boto3.client('s3')
     try:
-        response = client_s3.upload_file(report, bucket, object)
+        client_s3.upload_file(report, bucket, object)
     except ClientError as error:
         logger.error(f"here is the error message: {error}")
         return False
@@ -265,44 +307,47 @@ def publish_to_topic(topic_arn, subject, default_message, sms_message, email_mes
         
 if __name__ == '__main__':     # ENTRYPOINT OF THE CODE
     # STORE THE DATA IN A VARIABLE
-    instances = list_all_instances(region_name=AWS_REGION)                               
-    # Confirming that the list has been store
-    logger.info(f"our list is: {instances} has been store successfully")   
-    # #######print(instances)#################
-    # PASSING THE RETRIEVED DATA TO THE generated_csv_report()
-    fr_generated = generate_csv_report(instances)
-    print(fr_generated)
-    # Checking if the report is successfully generated
-    logger.info(f"the report {REPORT_NAME} has been generated successfully")            # alarmname = ALARMNAME, metricname = METRICNAME, namespace = NAMESPACE
-    # Uploading the report to S3 bucket
-    uploading = upload_file_to_S3(REPORT_NAME, BUCKET_NAME, OBJECT_NAME)
-    # Confirming that the report has been uploaded to S3
-    logger.info(f"the report {OBJECT_NAME} has been uploaded successfully")
-    # Creating the CloudWatch alarm
-    alarm = cloudwatch_alarm(ALARMNAME, METRICNAME, NAMESPACE) 
-    logger.info("create alarm %s to track metric %s in %s.", ALARMNAME, METRICNAME, NAMESPACE)
-    # Creating the sns topic
-    topic_name = 'sns_s3_upload_topic'
-    topic = create_topic(topic_name)
-    responses = []
-    for protocol, endpoint in zip(MY_PROTOCOL, MY_ENDPOINT):                      # Iterating over the two lists MY_PROTOCOL and MY_ENDPOINT in parallel using the built-in zip() function.
-        response = subscribe_to_topic(topic['TopicArn'], protocol, endpoint)      # On each iteration of the loop, the protocol variable is set to the next value 
-        responses.append(response)                                                # in the MY_PROTOCOL list, and the endpoint variable is set to the next value in the MY_ENDPOINT list.
-    my_messages = publish_to_topic(topic['TopicArn'], "Hello from AWS", "Please check your AWS Account",
-                     "Please check your AWS Account. This is an SMS message", "Please check your AWS Account to know more. This is an email message")
-    print(my_messages)  
+    instances = list_all_instances("us-east-1")                                # (region_name=AWS_REGION)    
+    for instance_data in instances:
+        formatted_instance_data = format_instance_data(instance_data)
+        print(formatted_instance_data)                  
+        
+        
+                 
+    # # Confirming that the list has been store
+    logger.info(f"our list is: {formatted_instance_data} has been store successfully")   
+    # # PASSING THE RETRIEVED DATA TO THE generated_csv_report()
+    # fr_generated = generate_csv_report(instances)
+    # print(fr_generated)
+    # # Checking if the report is successfully generated
+    # logger.info(f"the report {REPORT_NAME} has been generated successfully")           
+    # # Uploading the report to S3 bucket
+    # uploading = upload_file_to_s3(REPORT_NAME, BUCKET_NAME, OBJECT_NAME)
+    # # Confirming that the report has been uploaded to S3
+    # logger.info(f"the report {OBJECT_NAME} has been uploaded successfully")
+    # # Creating the CloudWatch alarm
+    # alarm = cloudwatch_alarm(ALARMNAME, METRICNAME, NAMESPACE) 
+    # logger.info("create alarm %s to track metric %s in %s.", ALARMNAME, METRICNAME, NAMESPACE)
+    # # Creating the sns topic
+    # topic_name = 'sns_s3_upload_topic'
+    # topic = create_topic(topic_name)
+    # responses = []
+    # for protocol, endpoint in zip(MY_PROTOCOL, MY_ENDPOINT):                      # Iterating over the two lists MY_PROTOCOL and MY_ENDPOINT in parallel using the built-in zip() function.
+    #     response = subscribe_to_topic(topic['TopicArn'], protocol, endpoint)      # On each iteration of the loop, the protocol variable is set to the next value 
+    #     responses.append(response)                                                # in the MY_PROTOCOL list, and the endpoint variable is set to the next value in the MY_ENDPOINT list.
+    # my_messages = publish_to_topic(topic['TopicArn'], "Hello from AWS", "Please check your AWS Account",
+    #                  "Please check your AWS Account. This is an SMS message", "Please check your AWS Account to know more. This is an email message")
+    # print(my_messages)  
   
 
         
-        
-        
-      
-
-    
-
-      
-   
-
+############################################
+#############################################
+###
+###  THIS CODE HAS BEEN REFACTOR IN TROUBLESHOOT\EXPERIMENT
+###
+#################################################################   
+###############################################################
 
 
 

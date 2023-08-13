@@ -1,0 +1,45 @@
+key,value
+image_id,ami-0261755bbcb8c4a84
+instance_id,i-08273b1d02a3af6c5
+instance_type,t2.micro
+private_dns_name,ip-10-0-15-172.ec2.internal
+private_ip_address,10.0.15.172
+public_dns_name,
+public_ip_address,
+subnet_id,subnet-08dcd85a7a59e5aba
+vpc_id,vpc-014cde1049dfb74fd
+placement,us-east-1a
+tags,{'Name': 'ANSIBLE-CONTROLLER-UBUNTU'}
+image_id,ami-0261755bbcb8c4a84
+instance_id,i-0cf714d530a802890
+instance_type,t2.micro
+private_dns_name,ip-10-0-6-53.ec2.internal
+private_ip_address,10.0.6.53
+public_dns_name,
+public_ip_address,
+subnet_id,subnet-08dcd85a7a59e5aba
+vpc_id,vpc-014cde1049dfb74fd
+placement,us-east-1a
+tags,{'Name': 'Ubuntu-docker-jenkins-client-1'}
+image_id,ami-0261755bbcb8c4a84
+instance_id,i-0caa72e9f9bf2b126
+instance_type,t2.micro
+private_dns_name,ip-10-0-14-13.ec2.internal
+private_ip_address,10.0.14.13
+public_dns_name,
+public_ip_address,
+subnet_id,subnet-08dcd85a7a59e5aba
+vpc_id,vpc-014cde1049dfb74fd
+placement,us-east-1a
+tags,{'Name': 'ubuntu-docker-client-4'}
+image_id,ami-0261755bbcb8c4a84
+instance_id,i-022acb22422298ad1
+instance_type,t2.micro
+private_dns_name,ip-10-0-0-19.ec2.internal
+private_ip_address,10.0.0.19
+public_dns_name,
+public_ip_address,
+subnet_id,subnet-08dcd85a7a59e5aba
+vpc_id,vpc-014cde1049dfb74fd
+placement,us-east-1a
+tags,{'Name': 'Docker-agent-ubuntu-3'}
