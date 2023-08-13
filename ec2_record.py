@@ -1,34 +1,16 @@
+
 # Importing the module needed for work.
 import boto3
-import logging
 import csv
 from botocore.exceptions import ClientError
 import json
+from config import REPORT_NAME, AWS_REGION, BUCKET_NAME, OBJECT_NAME, ALARMNAME, NAMESPACE, METRICNAME, logger
 
-# Setting up the logger
-logger = logging.getLogger(__name__)
-# Setting up the threshold for this logger to "logging.DEBUG"
-# Logging messages which are less severe than "logging.DEBUG" will be ignored.
-logger.setLevel(logging.DEBUG)
-# Formatting the logs records
-FORMAT = logging.Formatter('%(filename)s - %(asctime)s - %(levelname)s - %(message)s')
-# Create a FileHandler that writes to a file named 'ec2_manual_record.log'
-fh = logging.FileHandler('ec2_manual_record.log')
-# Setting up FORMAT for a logging handler object called fh.
-fh.setFormatter(FORMAT)
-# Add the FileHandler to the logger
-logger.addHandler(fh)
-
-
-REPORT_NAME = 'ec2_report_list_dict.csv'
-AWS_REGION = 'us-east-1'
-BUCKET_NAME = 'mynewestfirstbucket'
-OBJECT_NAME = 'instance_report.csv'         # THE ACTUAL NAME OF THE FILE ONCE IN THE S3 BUCKET
-ALARMNAME = 's3_upload_alarm'
-NAMESPACE = 'AWS/S3'
-METRICNAME = 'NumberOfObjects'
-MY_PROTOCOL = ["email", "sms"]
-MY_ENDPOINT = ["patrickstephane@gmail.com", "+15105751778"] 
+"""
+from config import *  
+This method will also work, but it is not recommended. It makes it harder to track the origin of variables. 
+It's best to be selective about the variables you import from other modules and avoid using wildcards if possible.
+""" 
 SNS_CLIENT = boto3.client('sns')
 
 def list_all_instances(region_name=AWS_REGION):
@@ -85,47 +67,7 @@ def list_all_instances(region_name=AWS_REGION):
         logger.exception(f"Error retrieving instances in REGION {region_name}: {e}")
        
     return instances
-
-def format_tags(tags_dict):
-    formatted_tags = []
-    for key, value in tags_dict.items():
-        formatted_tags.append(f"{key}: {value!r}")  # !r adds quotes around the value
-    return ", ".join(formatted_tags)
-
-def format_instance_data(instance_data):
-    tags_str = format_tags(instance_data['tags'])
-    formatted_str = (
-        f"Image ID: {instance_data['image_id']}\n"
-        f"Instance ID: {instance_data['instance_id']}\n"
-        f"Instance Type: {instance_data['instance_type']}\n"
-        f"Private DNS Name: {instance_data['private_dns_name']}\n"
-        f"Private IP Address: {instance_data['private_ip_address']}\n"
-        f"Public DNS Name: {instance_data['public_dns_name']}\n"
-        f"Public IP Address: {instance_data['public_ip_address']}\n"
-        f"Subnet ID: {instance_data['subnet_id']}\n"
-        f"VPC ID: {instance_data['vpc_id']}\n"
-        f"Placement: {instance_data['placement']}\n"
-        f"Tags: {tags_str}\n"
-    )
-    return formatted_str
-
-# def format_instance_data(instance_data):
-#     tags_str = ", ".join([f"{key}: {value}" for key, value in instance_data['tags'].items()])  
-#     formatted_str = (
-#         f"Image ID: {instance_data['image_id']}\n"
-#         f"Instance ID: {instance_data['instance_id']}\n"
-#         f"Instance Type: {instance_data['instance_type']}\n"
-#         f"Private DNS Name: {instance_data['private_dns_name']}\n"
-#         f"Private IP Address: {instance_data['private_ip_address']}\n"
-#         f"Public DNS Name: {instance_data['public_dns_name']}\n"
-#         f"Public IP Address: {instance_data['public_ip_address']}\n"
-#         f"Subnet ID: {instance_data['subnet_id']}\n"
-#         f"VPC ID: {instance_data['vpc_id']}\n"
-#         f"Placement: {instance_data['placement']}\n"
-#         f"Tags: {tags_str}\n"
-#     )
-#     return formatted_str
-
+    
 def generate_csv_report(data_retrieved): 
     """Generates a CSV report from the given data.
 
@@ -267,7 +209,7 @@ def subscribe_to_topic(my_topic, protocol, endpoint):
     else:
         return email_subscription
     
-def publish_to_topic(topic_arn, subject, default_message, sms_message, email_message): 
+def publish_to_topic(topic_arn, protocol, endpoint, subject, default_message, sms_message, email_message): 
     """Publishes a multi-format message to a topic. A multi-format message takes
        different forms based on the protocol of the subscriber.
 
@@ -290,7 +232,6 @@ def publish_to_topic(topic_arn, subject, default_message, sms_message, email_mes
     # logging informations before message is published.
     logger.info(f"Publishing message to SNS topic {topic_arn} with protocol {protocol} and endpoint {endpoint}")
     # Calling the "publish method" of the "sns_client" object to pass some parameters to it.
-   
     try:
         answer = SNS_CLIENT.publish(
             TopicArn=topic_arn, 
@@ -305,49 +246,20 @@ def publish_to_topic(topic_arn, subject, default_message, sms_message, email_mes
     message_id = answer['MessageId'] 
     return message_id      
         
-if __name__ == '__main__':     # ENTRYPOINT OF THE CODE
-    # STORE THE DATA IN A VARIABLE
-    instances = list_all_instances("us-east-1")                                # (region_name=AWS_REGION)    
-    for instance_data in instances:
-        formatted_instance_data = format_instance_data(instance_data)
-        print(formatted_instance_data)                  
-        
-        
-                 
-    # # Confirming that the list has been store
-    logger.info(f"our list is: {formatted_instance_data} has been store successfully")   
-    # # PASSING THE RETRIEVED DATA TO THE generated_csv_report()
-    # fr_generated = generate_csv_report(instances)
-    # print(fr_generated)
-    # # Checking if the report is successfully generated
-    # logger.info(f"the report {REPORT_NAME} has been generated successfully")           
-    # # Uploading the report to S3 bucket
-    # uploading = upload_file_to_s3(REPORT_NAME, BUCKET_NAME, OBJECT_NAME)
-    # # Confirming that the report has been uploaded to S3
-    # logger.info(f"the report {OBJECT_NAME} has been uploaded successfully")
-    # # Creating the CloudWatch alarm
-    # alarm = cloudwatch_alarm(ALARMNAME, METRICNAME, NAMESPACE) 
-    # logger.info("create alarm %s to track metric %s in %s.", ALARMNAME, METRICNAME, NAMESPACE)
-    # # Creating the sns topic
-    # topic_name = 'sns_s3_upload_topic'
-    # topic = create_topic(topic_name)
-    # responses = []
-    # for protocol, endpoint in zip(MY_PROTOCOL, MY_ENDPOINT):                      # Iterating over the two lists MY_PROTOCOL and MY_ENDPOINT in parallel using the built-in zip() function.
-    #     response = subscribe_to_topic(topic['TopicArn'], protocol, endpoint)      # On each iteration of the loop, the protocol variable is set to the next value 
-    #     responses.append(response)                                                # in the MY_PROTOCOL list, and the endpoint variable is set to the next value in the MY_ENDPOINT list.
-    # my_messages = publish_to_topic(topic['TopicArn'], "Hello from AWS", "Please check your AWS Account",
-    #                  "Please check your AWS Account. This is an SMS message", "Please check your AWS Account to know more. This is an email message")
-    # print(my_messages)  
+    
   
 
         
-############################################
-#############################################
-###
-###  THIS CODE HAS BEEN REFACTOR IN TROUBLESHOOT\EXPERIMENT
-###
-#################################################################   
-###############################################################
+        
+
+
+
+
+
+
+      
+   
+
 
 
 
